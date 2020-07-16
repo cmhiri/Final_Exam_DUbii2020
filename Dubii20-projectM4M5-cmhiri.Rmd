@@ -1,0 +1,325 @@
+---
+title: "Resequencing analysis of Bacillus subtilis soil isolates"
+author: "Corinne Mhiri"
+date: "`r Sys.Date()`"
+output:
+  html_document:
+    self_contained: yes ## label yes : can be sent by email but heavier >2Mb
+    code_folding: hide
+    fig_caption: yes
+    fig_height: 6
+    fig_width: 7
+    highlight: tango
+    incremental: no
+    keep_md: yes
+    smaller: yes
+    theme: cerulean
+    toc: yes
+    toc_depth: 3
+    toc_float: yes
+    widescreen: yes
+  beamer_presentation:
+    colortheme: dolphin
+    fig_caption: yes
+    fig_height: 6
+    fig_width: 7
+    fonttheme: structurebold
+    highlight: tango
+    incremental: no
+    keep_tex: no
+    slide_level: 2
+    theme: Montpellier
+    toc: yes
+  pdf_document:
+    fig_caption: yes
+    highlight: zenburn
+    toc: yes
+    toc_depth: 3
+  revealjs::revealjs_presentation:
+    theme: night
+    transition: none
+    self_contained: no
+    code_folding: hide
+    css: ../../slides.css
+  slidy_presentation:
+    font_adjustment: 0   ## set to negative/positive values for smaller/bigger fonts
+    duration: 45
+    self_contained: no
+    code_folding: hide
+    fig_caption: yes
+    fig_height: 6
+    fig_width: 7
+    highlight: tango
+    incremental: no
+    keep_md: yes
+    smaller: yes
+    theme: cerulean
+    toc: yes
+    widescreen: yes
+  ioslides_presentation:
+    self_contained: no
+    code_folding: hide
+    css: ../../slides.css
+    fig_caption: yes
+    fig_height: 6
+    fig_width: 7
+    highlight: tango
+    smaller: yes
+    toc: yes
+    widescreen: yes
+font-import: http://fonts.googleapis.com/css?family=Risque
+subtitle: DUBii -- Miniproject -- Final examination Modules 4 & 5
+font-family: Garamond
+transition: linear
+
+---
+
+```{r settings, include=FALSE, echo=FALSE, eval=TRUE}
+
+## Install knitr package if required
+if (!require(knitr)) {
+  message("Installing missing package: knitr")
+  install.packages("knitr")
+}
+library(knitr)
+
+options(width = 300)
+knitr::opts_chunk$set(
+  fig.width = 7, fig.height = 5, 
+  out.width = "80%",
+  fig.align = "center", 
+  fig.path = "figures/data-structures_",
+  size = "tiny", 
+  echo = TRUE, 
+  eval = TRUE, 
+  warning = FALSE, 
+  message = FALSE, 
+  results = TRUE, 
+  comment = "")
+
+##set the working directory
+setwd("/shared/mfs/data/projects/dubii2020/cmhiri/projects/bacillus/reports")
+
+```
+
+
+
+# Objectives
+
+The resequencing data from *Bacillus subtilis* isolates analysed in this project come from the article : "Complete Genome Sequences of 13 *Bacillus subtilis* Soil Isolates for Studying Secondary Metabolite Diversity"  ([doi:10.1128/MRA.01406-19](https://mra.asm.org/content/9/2/e01406-19)). The imput data are :
+
+## 1. Creation of the project directory structure
+
+The directory associed to this project has been named `bacillus` and stocked under `/shared/mfs/data/projects/dubii2020/cmhiri/projects/` in the IFB core cluster. Several subdirectories corresponding to the different analysis steps have been created. 
+
+```{bash project directory}
+
+project_home_path="/shared/mfs/data/projects/dubii2020/cmhiri/projects/bacillus"
+
+#creation of the project directory structure on the IFB cluster
+mkdir -p ${project_home_path}/reseq_strains
+mkdir -p ${project_home_path}/ref_strain
+mkdir -p ${project_home_path}/QC
+mkdir -p ${project_home_path}/cleaning
+mkdir -p ${project_home_path}/mapping
+mkdir -p ${project_home_path}/reports
+
+```
+
+
+## 2. Data downloading
+
+Data have been dowloaded by using the `wget`command for the *Bacillus subtilis * str 168 ([https://www.ncbi.nlm.nih.gov/assembly/GCF_000009045.1/]) reference genome (.fa and its associated .gff file ) with the -q option to inactivate command-related messages.
+The SRR10390685 run containing the sequenced *Bacillus* strain P5-B1 has been downloaded with the `fasterq-dump`tool from the `SRA-tools`module (version 2.10.3) available on the IFB cluster. The 2 dowloaded files (pair-ended) have been compressed with the `gzip`command.
+Here are the command used on the IBF cluster to dowload the data : 
+
+```{bash, eval= FALSE }
+project_home_path="/shared/mfs/data/projects/dubii2020/cmhiri/projects/bacillus"
+
+cd ${project_home_path}/ref_strain
+
+wget -q https://ftp.ncbi.nlm.nih.gov/genomes/all/GCF/000/009/045/GCF_000009045.1_ASM904v1/GCF_000009045.1_ASM904v1_genomic.gff.gz
+wget -q https://ftp.ncbi.nlm.nih.gov/genomes/all/GCF/000/009/045/GCF_000009045.1_ASM904v1/GCF_000009045.1_ASM904v1_genomic.fna.gz
+
+cd ${project_home_path}/reseq_strains
+
+module load sra-tools/2.10.3
+
+srun fasterq-dump -S -p SRR10390685 --outdir . --threads 4
+gzip *.fastq
+
+
+```
+## 3. Quality control of row reads
+
+This step has been done by using the `fastqc`module (version 0.11.8) available at the IFB cluster. Resulting html reports have been downloaded locally for quality run analysis. 
+
+```{bash, eval=FALSE}
+
+project_home_path="/shared/mfs/data/projects/dubii2020/cmhiri/projects/bacillus"
+
+cd ${project_home_path}
+
+module load fastqc/0.11.8
+srun --cpus-per-task 8 fastqc reseq_strains/SRR10390685_1.fastq.gz -o QC/ -t 8  
+srun --cpus-per-task 8 fastqc reseq_strains/SRR10390685_2.fastq.gz -o QC/ -t 8 
+
+
+```
+In the QC directory, two reports ([SRR10390685_1_fastqc.html](https://rstudio.cluster.france-bioinformatique.fr/file_show?path=%2Fshared%2Fmfs%2Fdata%2Fprojects%2Fdubii2020%2Fcmhiri%2Fprojects%2Fbacillus%2FQC%2FSRR10390685_1_fastqc.html) and [SRR10390685_2_fastqc.html](https://rstudio.cluster.france-bioinformatique.fr/file_show?path=%2Fshared%2Fmfs%2Fdata%2Fprojects%2Fdubii2020%2Fcmhiri%2Fprojects%2Fbacillus%2FQC%2FSRR10390685_2_fastqc.html)) have been produced and locally downloaded.
+The overall base quality looked good, with QC >20 for most bases except for some terminal ones
+
+|Measure	|Value |Value |
+|---------|------|-----|
+|Filename |	SRR10390685_2.fastq.gz|SRR10390685_1.fastq.gz|
+|File type|	Conventional base calls|Conventional base calls|
+|Encoding|	Sanger / Illumina 1.9 |Sanger / Illumina 1.9 |
+|Total Sequences	|7066055 |7066055
+|Sequences flagged as poor quality|	0|0|
+|Sequence length |	130-151|34-151|
+|%GC|	43|43
+
+As the total base number recovered from the SSR10390685 run was [2,119,142,216 bases](https://www.ncbi.nlm.nih.gov/Traces/study/?acc=SRX7091090&o=acc_s%3Aa) and the *Bacillus subtilis* str 168 reference genome is [4,215,606 bp long](https://www.ncbi.nlm.nih.gov/assembly/GCF_000009045.1/),
+**the sequencing depth equals appr. 500**. The length of the reference genome could also be retrieved with the `samtools faidx` command (in the second column)
+
+## 4. Read cleaning 
+
+SSR10390685 reads have been cleaned by using the `fastp` tool (version 0.20.0). Default `fastp` parameters detect and remove classical Illumina adapter, filter reads with mean quality >=20 on a sliding window of 4, max allowed N in reads equal 5.The minimum length of the trimmed reads has been set to 100 bases (-l 100). Only an html report has been asked (-h) and a report title given (-R). Paired reads of good quality have been put in twin files (--out1 and --out2), singletons in separate files (--unpaired1 or --unpaired2) and poor quality reads in a --failed_out file.
+
+```{bash, eval=FALSE}
+
+###script fastp.bash in the 'scripts' directory
+
+#!/bin/bash
+#SBATCH --cpus-per-task=8
+
+module load fastp/0.20.0
+
+project_home_path="/shared/mfs/data/projects/dubii2020/cmhiri/projects/bacillus"
+cd ${project_home_path}
+
+srun --cpus-per-task 8 fastp \
+  --in1 reseq_strains/SRR10390685_1.fastq.gz \
+  --in2 reseq_strains/SRR10390685_2.fastq.gz \ 
+  --out1 cleaning/SRR10390685_1_cleaned_filtered.fastq.gz \
+  --out2 cleaning/SRR10390685_2_cleaned_filtered.fastq.gz \        --unpaired1 cleaning/SRR10390685_1_unpaired.fastq.gz \
+  --unpaired2 cleaning/SRR10390685_2_unpaired.fastq.gz \
+  --failed_out cleaning/SRR10390685_2_failed_out.fastq.gz \
+  -h cleaning/SRR10390685_fastp.html\
+  -R "Bacillus subtilis SRR10390685 fastp report" \
+  --thread 1
+  
+```
+Two cleaned (filtered) files corresponding to paired reads have been created in the 'cleaning' directory as well as an [SRR10390685_fastp.html report](https://rstudio.cluster.france-bioinformatique.fr/file_show?path=%2Fshared%2Fmfs%2Fdata%2Fprojects%2Fdubii2020%2Fcmhiri%2Fprojects%2Fbacillus%2Fcleaning%2FSRR10390685_fastp.html)
+
+As given in the summary of the fastp.html report, **the pourcentage of filtered reads equals 2.6 %**, corresponding mainly to low quality reads (2.59%) and reads with too many N (0.03%).
+
+## 5. Read mapping
+
+Reads have been mapped on the *Bacillus* reference genome by using the `bwa`mapping tool (version 0.7.17) and the `samtools` tool (version 1.9) to convert the alignment file from .sam to .bam format . First a genome index has been created with the `bwa index`command and the alignment done with the `bwa mem`one. A script "bwa.bash" has been run to produce the output file SRR10390685.bam
+
+```{bash, eval=FALSE}
+#!/bin/bash
+
+#SBATCH --cpus-per-task=8
+
+module load bwa/0.7.17
+module load samtools/1.9
+
+DIR_HOME_PROJECT="/shared/mfs/data/projects/dubii2020/cmhiri/projects/bacillus"
+DIR_CLEANED_READS="/shared/mfs/data/projects/dubii2020/cmhiri/projects/bacillus/cleaning"
+
+cd ${DIR_HOME_PROJECT}
+
+srun gunzip ref_strain/GCF_000009045.1_ASM904v1_genomic.fna.gz
+
+srun bwa  index ref_strain/GCF_000009045.1_ASM904v1_genomic.fna
+
+srun --cpus-per-task=8 bwa mem \
+  ref_strain/GCF_000009045.1_ASM904v1_genomic.fna\
+  ${DIR_CLEANED_READS}/SRR10390685_1_cleaned_filtered.fastq.gz \
+  ${DIR_CLEANED_READS}/SRR10390685_2_cleaned_filtered.fastq.gz \
+  -t 8 \
+  |
+  samtools view -hbS > mapping/SRR10390685.bam
+
+```
+The percentage of aligned paired-reads could be found by running the following script 'samtools_index_stat.bash' on the IFB cluster (script in bacillus/scripts directory), using the sorted SRR10390685.bam file and the `samtools flagstat`command:
+
+```{bash, eval=FALSE}
+
+srun samtools index SRR10390685_sorted.bam
+srun samtools flagstat SRR10390685_sorted.bam
+
+```
+The output 'slurm-9727706.out' contained the following data :
+
+```{bash, eval=FALSE}
+
+
+13780340 + 0 in total (QC-passed reads + QC-failed reads)
+0 + 0 secondary
+18710 + 0 supplementary
+0 + 0 duplicates
+13025672 + 0 mapped (94.52% : N/A)
+13761630 + 0 paired in sequencing
+6880815 + 0 read1
+6880815 + 0 read2
+12943762 + 0 properly paired (94.06% : N/A)
+12966884 + 0 with itself and mate mapped
+40078 + 0 singletons (0.29% : N/A)
+0 + 0 with mate mapped to a different chr
+0 + 0 with mate mapped to a different chr (mapQ>=5)
+
+```
+The number of properly paired reads (= aligned paired reads) is **12,943,762** corresponding to **93.93% of total reads**. 
+
+## 6. Extraction of specific reads aligning at least 50% on the trmNF gene 
+
+First the line containing the coordinates of the trmNF gene has been extracted from the *Bacillus* .ggf3 file in a file called 'trmNF_gene.gff'
+
+```{bash, eval=FALSE}
+grep "trmNF" ref_strain/GCF_000009045.1_ASM904v1_genomic.gff |awk '$3=="gene"' > reports/trmNF_gene.gff
+```
+Then the following script "trmNF.bash" has been written in the 'scripts'directory and run on the cluster :
+
+```{bash, eval=FALSE}
+#!/bin/bash
+
+module load samtools/1.9
+module load bedtools/2.27.1
+
+DIR_HOME_PROJECT="/shared/mfs/data/projects/dubii2020/cmhiri/projects/bacillus"
+
+cd ${DIR_HOME_PROJECT}
+
+
+#use of bedtools intersect to extract from the SRR.bam file the reads mapping at least 50% to the trmNF gene
+
+srun bedtools intersect -a mapping/SRR10390685_sorted.bam \
+                        -b  reports/trmNF_gene.gff \
+                        -f 0.5\
+                         > reports/SSR10390685_trmNF_filtered_0.5.bam
+
+#count the lines of the resulting .bam file and put the result into a variable called SSRtrmNF
+
+SSRtrmNF=$(srun samtools view -c reports/SSR10390685_trmNF_filtered_0.5.bam)
+
+echo ${SSRtrmNF}
+echo "The read number overlapping at least 50% of the reference trmNF gene is: ${SSRtrmNF}"
+
+```
+Response (in the output 'slurm-9732008.out'): 2844
+
+The read number overlapping at least 50% of the reference trmNF gene is: **2844**
+
+## Project Tree
+The directory of the project 'bacillus' can be visualized with the `tree` command:
+`$ tree /shared/projects/dubii2020/cmhiri/projects/bacillus`
+
+```{r, echo=FALSE, fig.cap="Tree caption from the bacillus directory", out.width = '50%'}
+knitr::include_graphics("Tree-dubiiM4M5-2020-07-15.png")
+
+```
+
+
