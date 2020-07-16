@@ -11,7 +11,7 @@
 
 <meta name="author" content="Corinne Mhiri" />
 
-<meta name="date" content="2020-07-15" />
+<meta name="date" content="2020-07-16" />
 
 <title>Resequencing analysis of Bacillus subtilis soil isolates</title>
 
@@ -1649,7 +1649,7 @@ div.tocify {
 <h1 class="title toc-ignore">Resequencing analysis of Bacillus subtilis soil isolates</h1>
 <h3 class="subtitle">DUBii – Miniproject – Final examination Modules 4 &amp; 5</h3>
 <h4 class="author">Corinne Mhiri</h4>
-<h4 class="date">2020-07-15</h4>
+<h4 class="date">2020-07-16</h4>
 
 </div>
 
@@ -1824,8 +1824,8 @@ div.tocify {
 <a class="sourceLine" id="cb7-15" data-line-number="15"><span class="ex">0</span> + 0 with mate mapped to a different chr (mapQ<span class="op">&gt;</span>=5)</a></code></pre></div>
 <p>The number of properly paired reads (= aligned paired reads) is <strong>12,943,762</strong> corresponding to <strong>93.93% of total reads</strong>.</p>
 </div>
-<div id="extraction-of-specific-reads-aligning-at-least-50-of-the-trmnf-gene" class="section level2">
-<h2>6. Extraction of specific reads aligning at least 50% of the trmNF gene</h2>
+<div id="extraction-of-specific-reads-aligning-at-least-50-on-the-trmnf-gene" class="section level2">
+<h2>6. Extraction of specific reads aligning at least 50% on the trmNF gene</h2>
 <p>First the line containing the coordinates of the trmNF gene has been extracted from the <em>Bacillus</em> .ggf3 file in a file called ‘trmNF_gene.gff’</p>
 <div class="sourceCode" id="cb8"><pre class="sourceCode bash"><code class="sourceCode bash"><a class="sourceLine" id="cb8-1" data-line-number="1"><span class="fu">grep</span> <span class="st">&quot;trmNF&quot;</span> ref_strain/GCF_000009045.1_ASM904v1_genomic.gff <span class="kw">|</span><span class="fu">awk</span> <span class="st">'$3==&quot;gene&quot;'</span> <span class="op">&gt;</span> reports/trmNF_gene.gff</a></code></pre></div>
 <p>Then the following script “trmNF.bash” has been written in the ’scripts’directory and run on the cluster :</p>
